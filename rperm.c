@@ -1,6 +1,8 @@
 #include <sys/param.h>
 #include <sys/conf.h>
+#if !defined(_RPERM_TESTING)
 #include <sys/cprng.h>
+#endif
 #include <sys/kmem.h>
 #include <sys/module.h>
 #include <sys/systm.h>
@@ -71,9 +73,9 @@ rperm_write(dev_t self, struct uio *uio, int flags)
  */
 uint32_t rand_n(uint32_t low, uint32_t high) {
     uint32_t limit, diff, r;
-    
+
     diff = high - low;
-    limit = diff * (R32MAX/diff);
+    limit = (uint32_t) (diff * (R32MAX/diff));
     do {
 	r = cprng_strong32();
     } while (r > limit);
@@ -85,12 +87,12 @@ rperm_read(dev_t self, struct uio *uio, int flags)
 {
     if (sc.buf == NULL || uio->uio_resid < sc.buf_len)
 	return EINVAL;
-    
+
     char c;
-    uint32_t i, n, r;
-    
+    uint32_t i, r;
+
     for (i = 0; i < sc.buf_len-1; i++) {
-	r = rand_n(i, sc.buf_len);
+	r = rand_n(i, (uint32_t) sc.buf_len);
 	c = sc.buf[r];
 	sc.buf[r] = sc.buf[i];
 	sc.buf[i] = c;
@@ -105,7 +107,7 @@ static int
 rperm_modcmd(modcmd_t cmd, void *args)
 {
     devmajor_t bmajor, cmajor;
-    
+
     bmajor = -1;
     cmajor = CMAJOR;
     switch(cmd) {
